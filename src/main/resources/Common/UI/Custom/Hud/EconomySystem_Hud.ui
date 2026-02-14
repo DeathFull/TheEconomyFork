@@ -1,0 +1,158 @@
+Group #Panel {
+  Anchor: (Right: 20, Top: 400, Height: 150, Width: 150);
+  Background: (Color: #1B2A3A60);
+  Padding: (Horizontal: 10, Vertical: 8);
+  LayoutMode: Top;
+  
+  Label #NickLabel {
+    Text: "Nick: PlayerName";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #MoneyLabel {
+    Text: "Money: $0.00";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #RankLabel {
+    Text: "Top Rank: #N/A";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #ShopStatusLabel {
+    Text: "Loja: Fechada";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #FieldLabel0 {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #FieldLabel1 {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #FieldLabel2 {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #FieldLabel3 {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #FieldLabel4 {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #FieldLabel5 {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #FieldLabel6 {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #FieldLabel7 {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #FieldLabel8 {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #FieldLabel9 {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #ffffff
+    );
+    Anchor: (Left: 0, Top: 0);
+    Visible: false;
+  }
+  
+  Label #GainLabel {
+    Text: "";
+    Style: (
+      FontSize: 13,
+      TextColor: #00ff00,
+      HorizontalAlignment: Center
+    );
+    Anchor: (Horizontal: 0, Top: 0);
+    Visible: false;
+  }
+}
+

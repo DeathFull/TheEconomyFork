@@ -1,0 +1,21 @@
+Button {
+  Anchor: (Width: 140, Height: 30);
+  Padding: (Full: 5);
+  LayoutMode: Top;
+  Style: ButtonStyle(
+    Default: (Background: #1B2A3A(0.8)),
+    Hovered: (Background: #22364B(0.8)),
+    Pressed: (Background: #152233(0.9))
+  );
+
+  Label #EditLabel {
+    Style: (
+      FontSize: 14,
+      RenderBold: true,
+      TextColor: #ffffff,
+      HorizontalAlignment: Center
+    );
+    Anchor: (Vertical: 0);
+  }
+}
+

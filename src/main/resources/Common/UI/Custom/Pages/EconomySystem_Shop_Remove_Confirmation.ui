@@ -1,0 +1,46 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {
+  $C.@Container {
+    Anchor: (Width: 450, Height: 120);
+
+    Group {
+      LayoutMode: Top;
+
+      Label #ConfirmationMessage {
+        Style: (
+          FontSize: 14,
+          RenderBold: true,
+          TextColor: #ffffff,
+          HorizontalAlignment: Center
+        );
+        Anchor: (Width: 440, Height: 50);
+        Padding: (Left: 10, Right: 10, Top: 10, Bottom: 6);
+      }
+
+      Group {
+        LayoutMode: Left;
+        Padding: (Left: 10, Right: 10, Top: 15);
+
+        $C.@TextButton #ConfirmButton {
+          Text: "Confirm";
+          Padding: (Left: 12, Right: 25, Top: 6, Bottom: 6);
+          Anchor: (Width: 170, Height: 40);
+        }
+
+        Label {
+          FlexWeight: 1;
+        }
+
+        $C.@CancelTextButton #CancelButton {
+          Text: "Cancel";
+          Padding: (Left: 12, Right: 25, Top: 6, Bottom: 6);
+          Anchor: (Width: 170, Height: 40);
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}
+

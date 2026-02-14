@@ -1,0 +1,344 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {
+  $C.@Container {
+    Anchor: (Width: 500, Height: 300);
+
+    Group {
+      LayoutMode: Top;
+
+      Label #TitleLabel {
+        Style: (
+          FontSize: 16,
+          RenderBold: true,
+          TextColor: #ffffff,
+          HorizontalAlignment: Center
+        );
+        Anchor: (Width: 490, Height: 40);
+        Padding: (Top: 10, Bottom: 10);
+      }
+
+      Group {
+        LayoutMode: Left;
+        Padding: (Left: 10, Right: 10, Top: 10);
+
+        Label #PriceBuyLabel {
+          Style: (
+            FontSize: 12,
+            TextColor: #cccccc
+          );
+          Anchor: (Width: 120, Height: 30);
+          Padding: (Top: 6);
+        }
+
+        $C.@TextField #PriceBuyField {
+          FlexWeight: 1;
+          Anchor: (Height: 30);
+          Style: (
+            FontSize: 13,
+            TextColor: #ffffff(0.85)
+          );
+        }
+      }
+
+      Group {
+        LayoutMode: Left;
+        Padding: (Left: 10, Right: 10, Top: 10);
+
+        Label #PriceSellLabel {
+          Style: (
+            FontSize: 12,
+            TextColor: #cccccc
+          );
+          Anchor: (Width: 120, Height: 30);
+          Padding: (Top: 6);
+        }
+
+        $C.@TextField #PriceSellField {
+          FlexWeight: 1;
+          Anchor: (Height: 30);
+          Style: (
+            FontSize: 13,
+            TextColor: #ffffff(0.85)
+          );
+        }
+      }
+
+      Group {
+        LayoutMode: Left;
+        Padding: (Left: 10, Right: 10, Top: 20);
+
+        $C.@TextButton #ConfirmButton {
+          Text: "Confirm";
+          Padding: (Left: 12, Right: 25, Top: 6, Bottom: 6);
+          Anchor: (Width: 200, Height: 40);
+        }
+
+        Label {
+          FlexWeight: 1;
+        }
+
+        $C.@CancelTextButton #CancelButton {
+          Text: "Cancel";
+          Padding: (Left: 12, Right: 25, Top: 6, Bottom: 6);
+          Anchor: (Width: 200, Height: 40);
+        }
+      }
+
+      Label #HotbarItemsLabel {
+        Style: (
+          FontSize: 12,
+          RenderBold: true,
+          TextColor: #cccccc,
+          HorizontalAlignment: Center
+        );
+        Anchor: (Width: 480, Height: 25);
+        Padding: (Top: 15, Bottom: 5);
+        Text: "Itens da Hotbar";
+      }
+
+      Group #HotbarContainer {
+        LayoutMode: Center;
+        Padding: (Left: 10, Right: 10, Top: 5, Bottom: 10);
+        Anchor: (Height: 100);
+
+        Button #HotbarButton0 {
+          Anchor: (Width: 50, Height: 50);
+          Padding: (Full: 4);
+          Background: (Color: #1a1a1a(0.6));
+          Style: ButtonStyle(
+            Default: (Background: #1B2A3A(0.8)),
+            Hovered: (Background: #22364B(0.8)),
+            Pressed: (Background: #152233(0.9))
+          );
+          Visible: false;
+          ItemIcon #ItemIcon {
+            Anchor: (Width: 42, Height: 42);
+            Visible: false;
+          }
+          Label #QuantityLabel {
+            Anchor: (Width: 50, Height: 50);
+            Padding: (Top: 30, Left: 30);
+            Style: (
+              FontSize: 9,
+              RenderBold: true,
+              TextColor: #ffffff
+            );
+            Visible: false;
+          }
+        }
+
+        Button #HotbarButton1 {
+          Anchor: (Width: 50, Height: 50);
+          Padding: (Full: 4);
+          Background: (Color: #1a1a1a(0.6));
+          Style: ButtonStyle(
+            Default: (Background: #1B2A3A(0.8)),
+            Hovered: (Background: #22364B(0.8)),
+            Pressed: (Background: #152233(0.9))
+          );
+          Visible: false;
+          ItemIcon #ItemIcon {
+            Anchor: (Width: 42, Height: 42);
+            Visible: false;
+          }
+          Label #QuantityLabel {
+            Anchor: (Width: 50, Height: 50);
+            Padding: (Top: 30, Left: 30);
+            Style: (
+              FontSize: 9,
+              RenderBold: true,
+              TextColor: #ffffff
+            );
+            Visible: false;
+          }
+        }
+
+        Button #HotbarButton2 {
+          Anchor: (Width: 50, Height: 50);
+          Padding: (Full: 4);
+          Background: (Color: #1a1a1a(0.6));
+          Style: ButtonStyle(
+            Default: (Background: #1B2A3A(0.8)),
+            Hovered: (Background: #22364B(0.8)),
+            Pressed: (Background: #152233(0.9))
+          );
+          Visible: false;
+          ItemIcon #ItemIcon {
+            Anchor: (Width: 42, Height: 42);
+            Visible: false;
+          }
+          Label #QuantityLabel {
+            Anchor: (Width: 50, Height: 50);
+            Padding: (Top: 30, Left: 30);
+            Style: (
+              FontSize: 9,
+              RenderBold: true,
+              TextColor: #ffffff
+            );
+            Visible: false;
+          }
+        }
+
+        Button #HotbarButton3 {
+          Anchor: (Width: 50, Height: 50);
+          Padding: (Full: 4);
+          Background: (Color: #1a1a1a(0.6));
+          Style: ButtonStyle(
+            Default: (Background: #1B2A3A(0.8)),
+            Hovered: (Background: #22364B(0.8)),
+            Pressed: (Background: #152233(0.9))
+          );
+          Visible: false;
+          ItemIcon #ItemIcon {
+            Anchor: (Width: 42, Height: 42);
+            Visible: false;
+          }
+          Label #QuantityLabel {
+            Anchor: (Width: 50, Height: 50);
+            Padding: (Top: 30, Left: 30);
+            Style: (
+              FontSize: 9,
+              RenderBold: true,
+              TextColor: #ffffff
+            );
+            Visible: false;
+          }
+        }
+
+        Button #HotbarButton4 {
+          Anchor: (Width: 50, Height: 50);
+          Padding: (Full: 4);
+          Background: (Color: #1a1a1a(0.6));
+          Style: ButtonStyle(
+            Default: (Background: #1B2A3A(0.8)),
+            Hovered: (Background: #22364B(0.8)),
+            Pressed: (Background: #152233(0.9))
+          );
+          Visible: false;
+          ItemIcon #ItemIcon {
+            Anchor: (Width: 42, Height: 42);
+            Visible: false;
+          }
+          Label #QuantityLabel {
+            Anchor: (Width: 50, Height: 50);
+            Padding: (Top: 30, Left: 30);
+            Style: (
+              FontSize: 9,
+              RenderBold: true,
+              TextColor: #ffffff
+            );
+            Visible: false;
+          }
+        }
+
+        Button #HotbarButton5 {
+          Anchor: (Width: 50, Height: 50);
+          Padding: (Full: 4);
+          Background: (Color: #1a1a1a(0.6));
+          Style: ButtonStyle(
+            Default: (Background: #1B2A3A(0.8)),
+            Hovered: (Background: #22364B(0.8)),
+            Pressed: (Background: #152233(0.9))
+          );
+          Visible: false;
+          ItemIcon #ItemIcon {
+            Anchor: (Width: 42, Height: 42);
+            Visible: false;
+          }
+          Label #QuantityLabel {
+            Anchor: (Width: 50, Height: 50);
+            Padding: (Top: 30, Left: 30);
+            Style: (
+              FontSize: 9,
+              RenderBold: true,
+              TextColor: #ffffff
+            );
+            Visible: false;
+          }
+        }
+
+        Button #HotbarButton6 {
+          Anchor: (Width: 50, Height: 50);
+          Padding: (Full: 4);
+          Background: (Color: #1a1a1a(0.6));
+          Style: ButtonStyle(
+            Default: (Background: #1B2A3A(0.8)),
+            Hovered: (Background: #22364B(0.8)),
+            Pressed: (Background: #152233(0.9))
+          );
+          Visible: false;
+          ItemIcon #ItemIcon {
+            Anchor: (Width: 42, Height: 42);
+            Visible: false;
+          }
+          Label #QuantityLabel {
+            Anchor: (Width: 50, Height: 50);
+            Padding: (Top: 30, Left: 30);
+            Style: (
+              FontSize: 9,
+              RenderBold: true,
+              TextColor: #ffffff
+            );
+            Visible: false;
+          }
+        }
+
+        Button #HotbarButton7 {
+          Anchor: (Width: 50, Height: 50);
+          Padding: (Full: 4);
+          Background: (Color: #1a1a1a(0.6));
+          Style: ButtonStyle(
+            Default: (Background: #1B2A3A(0.8)),
+            Hovered: (Background: #22364B(0.8)),
+            Pressed: (Background: #152233(0.9))
+          );
+          Visible: false;
+          ItemIcon #ItemIcon {
+            Anchor: (Width: 42, Height: 42);
+            Visible: false;
+          }
+          Label #QuantityLabel {
+            Anchor: (Width: 50, Height: 50);
+            Padding: (Top: 30, Left: 30);
+            Style: (
+              FontSize: 9,
+              RenderBold: true,
+              TextColor: #ffffff
+            );
+            Visible: false;
+          }
+        }
+
+        Button #HotbarButton8 {
+          Anchor: (Width: 50, Height: 50);
+          Padding: (Full: 4);
+          Background: (Color: #1a1a1a(0.6));
+          Style: ButtonStyle(
+            Default: (Background: #1B2A3A(0.8)),
+            Hovered: (Background: #22364B(0.8)),
+            Pressed: (Background: #152233(0.9))
+          );
+          Visible: false;
+          ItemIcon #ItemIcon {
+            Anchor: (Width: 42, Height: 42);
+            Visible: false;
+          }
+          Label #QuantityLabel {
+            Anchor: (Width: 50, Height: 50);
+            Padding: (Top: 30, Left: 30);
+            Style: (
+              FontSize: 9,
+              RenderBold: true,
+              TextColor: #ffffff
+            );
+            Visible: false;
+          }
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}
+

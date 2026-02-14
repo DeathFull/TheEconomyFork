@@ -1,0 +1,537 @@
+<h2><img src="https://media.forgecdn.net/attachments/description/1430004/description_020339df-6b19-43ce-8ff6-2797b79f784e.png" alt="" width="850" height="234"></h2>
+<h2>EconomySystem &ndash; Hytale Economy Plugin</h2>
+<p>EconomySystem is a complete economy plugin for Hytale servers, featuring persistent player balances, money commands, admin tools, reward systems (block breaks + monster kills), a full shop GUI, <strong>player-to-player shops</strong>, localization support (EN/PT/ES/RU), <strong>MySQL database support</strong>, and a public API for easy integration with other mods.</p>
+<hr>
+<h2>✅ Main Features</h2>
+<ul>
+<li>Persistent Balances (JSON/MySQL) saved automatically every 30 seconds</li>
+<li><strong>MySQL Database Support:</strong> Full MySQL integration for scalable server deployments</li>
+<li>Starter Money: New players receive a <strong>configurable starting balance (JSON config)</strong></li>
+<li>Safe &amp; Stable: Thread-safe balance handling with secure disk saving</li>
+<li>Shop System: Full server shop with GUI, buy/sell support, and live item loading</li>
+<li><strong>Player Shop System:</strong> Player-to-player shops with GUI, stock management, and persistence</li>
+<li>Translations: Multi-language support (EN / PT / ES / <strong>RU</strong>)</li>
+<li>Advanced Currency Formatting: Custom symbol, 1.000,00 format, and short values (1k, 1kk, 1kkk)</li>
+<li>Rewards System: Earn money from breaking ores/wood and killing monsters</li>
+<li>Console Support: Admin commands work from server console</li>
+<li>Plugin's own scoreboard</li>
+<li>The plugin has now been adapted to a color-coding system for messages similar to that of Minecraft.</li>
+</ul>
+<hr>
+<h2>💰 Player Commands</h2>
+<ul>
+<li><code>/money</code> &rarr; Shows your balance in a stylish on-screen title.<br><strong>Aliases:</strong> <code>/eco</code> <code>/balance</code> <code>/bal</code><br><strong>Permission:</strong> <code>theeconomy.player.money</code></li>
+<li><code>/money &lt;player&gt;</code> &rarr; View another player&rsquo;s balance<br><strong>Permission:</strong> <code>theeconomy.player.money</code></li>
+<li><code>/money pay &lt;player&gt; &lt;amount&gt;</code> &rarr; Send money to another player<br><strong>Permission:</strong> <code>theeconomy.player.money.pay</code></li>
+<li><code>/money top</code> &rarr; Displays the Top 10 richest players (special colors for Top 3)<br><strong>Aliases:</strong> <code>/money ranking</code> <code>/money leaderboard</code><br><strong>Permission:</strong> <code>theeconomy.player.money.top</code></li>
+<li><code>/iteminfo</code> &rarr; Shows information about the item in hand<br><strong>Aliases:</strong> <code>/ii</code> <code>/item</code><br><strong>Permission:</strong> <code>theeconomy.player.iteminfo</code></li>
+</ul>
+<hr>
+<h2>🛠 Admin Commands</h2>
+<ul>
+<li><code>/money set &lt;player&gt; &lt;amount&gt;</code> &rarr; Set a player&rsquo;s balance<br><strong>Permission:</strong> <code>theeconomy.admin.money.set</code></li>
+<li><code>/money give &lt;player&gt; &lt;amount&gt;</code> &rarr; Add money to a player<br><strong>Permission:</strong> <code>theeconomy.admin.money.give</code><br>✅ <strong>Works from console!</strong></li>
+</ul>
+<hr>
+<h2>🛒 Server Shop Commands &amp; System</h2>
+<ul>
+<li><code>/shop</code> &rarr; Opens the Shop GUI<br><strong>Aliases:</strong> <code>/loja</code><br><strong>Permission:</strong> <code>theeconomy.player.shop</code></li>
+<li>Browse available items using a clean interface</li>
+<li>Buy and sell items with a confirmation dialog</li>
+<li>Quantity input field in the confirmation GUI</li>
+<li>Shop supports translated item names, tooltips, and messages</li>
+<li>Buy/Sell options are automatically disabled if the item price is set to <code>0</code></li>
+<li>Displays an empty shop message when no items are available</li>
+<li>Dynamic translated titles based on configured language</li>
+</ul>
+<h3>🛠 Server Shop Admin Commands</h3>
+<ul>
+<li><code>/shop manager</code> &rarr; It allows you to manage Adminshop through the interface without using the commands below.<br><strong>Permission:</strong> <code>theeconomy.admin.shop.manager</code></li>
+<li><code>/shop add &lt;itemid&gt; &lt;quantity&gt; &lt;pricesell&gt; &lt;pricebuy&gt;</code> &rarr; Adds an item to the shop<br><strong>Permission:</strong> <code>theeconomy.admin.shop.add</code></li>
+<li><code>/shop tab add &lt;tabname&gt;</code> &rarr; Adds an tab to the shop<br><strong>Permission:</strong> <code>theeconomy.admin.shop.add</code></li>
+<li><code>/shop tab remove &lt;tabname&gt;</code> &rarr; Removes an tab to the shop<br><strong>Permission:</strong> <code>theeconomy.admin.shop.remove</code></li>
+<li><code>/shop remove &lt;uniqueid&gt;</code> &rarr; Removes an item from the shop<br><strong>Permission:</strong> <code>theeconomy.admin.shop.remove</code></li>
+</ul>
+<hr>
+<h2>🧑&zwj;🤝&zwj;🧑 Player Shop System (Player-to-Player Shops)</h2>
+<p>Players can create their own personal shops and trade with others.</p>
+<h3>Player Shop Commands</h3>
+<ul>
+<li><code>/myshop</code> &rarr;<br><strong>Aliases:</strong> <code>/mshop</code> <code>/minhaloja</code><br><strong>Permission:</strong> <code>theeconomy.player.myshop.manager</code></li>
+<li><code>/myshop manager</code> &rarr; It allows you to manage Playershop through the interface without using the commands below.<br><strong>Permission:</strong> <code>theeconomy.player.myshop.manager</code></li>
+<li><code>/myshop open</code> &rarr; Opens your shop.<br><strong>Permission:</strong> <code>theeconomy.player.myshop</code></li>
+<li><code>/myshop close</code> &rarr; Closes your shop<br><strong>Permission:</strong> <code>theeconomy.player.myshop</code></li>
+<li><code>/myshop add &lt;priceBuy&gt; &lt;priceSell&gt;</code> &rarr; Adds the item in hand to your shop<br><strong>Permission:</strong> <code>theeconomy.player.myshop</code></li>
+<li><code>/myshop remove &lt;uniqueid&gt;</code> &rarr; Removes an item from your shop<br><strong>Permission:</strong> <code>theeconomy.player.myshop</code></li>
+<li><code>/myshop tab add &lt;name&gt;</code> &rarr; Adds a tab to the player's store.<br><strong>Permission:</strong> <code>theeconomy.player.myshop</code></li>
+<li><code>/myshop rename &lt;name&gt;</code> &rarr; Rename the store.<br><strong>Permission:</strong> <code>theeconomy.player.myshop</code></li>
+<li><code>/playershop &lt;nick&gt;</code> &rarr; Opens another player&rsquo;s shop<br><strong>Aliases:</strong> <code>/pshop</code> <code>/lojajogador</code> <br><strong>Permission:</strong> <code>theeconomy.player.playershop</code></li>
+<li><code>/shops</code> &rarr; Lists all open player shops<br><strong>Aliases:</strong> <code>/lojas</code> <code>/shopslist</code><br><strong>Permission:</strong> <code>theeconomy.player.shops</code></li>
+</ul>
+<h3>Player Shop Features</h3>
+<ul>
+<li>The store now has an item management interface and tabs for easy editing.</li>
+<li>Configurable via <code>EnablePlayerShop</code> in <code>EconomyConfig</code> <em>(default: true)</em></li>
+<li>Shop data persists in JSON (owner UUID, nickname, and open/closed status)</li>
+<li>Items remain listed even with <strong>0 stock</strong> (can be restocked when players sell)</li>
+<li>Supports separate <strong>Buy</strong> and <strong>Sell</strong> prices per item</li>
+<li>Shop owners receive transaction notifications when online</li>
+<li>Data organized per player in a structured JSON format</li>
+<li>Confirmation dialog when removing items from your own shop</li>
+<li>Items automatically returned to inventory when removed from shop</li>
+<li>Automatic stock system:
+<ul>
+<li>Stock decreases when players buy</li>
+<li>Stock increases when players sell</li>
+</ul>
+</li>
+</ul>
+<h3>Player Shop GUI Features</h3>
+<ul>
+<li>Displays prices: <code>B: Value  S: Value</code> (translated)</li>
+<li>Shows stock: <code>Stock: Quantity</code> (translated)</li>
+<li>Tooltips include: unique ID, stock, prices, and durability</li>
+<li>Prevents buying from your own shop</li>
+<li>Allows selling to your own shop to restock</li>
+<li>Items with <code>0</code> stock stay visible but cannot be purchased</li>
+<li>Dynamic stock updates after transactions</li>
+<li>Dynamic translated titles with player names</li>
+<li>Click to remove items when viewing your own shop via <code>/shops</code></li>
+</ul>
+<hr>
+<h2>⛏ Block Break Rewards</h2>
+<p>Earn money automatically by breaking blocks:</p>
+<ul>
+<li>Ore Rewards
+<ul>
+<li>Fully configurable per ore type</li>
+<li>Can be enabled/disabled in config</li>
+</ul>
+</li>
+<li>Wood Rewards
+<ul>
+<li>Reward values can be configured per wood type</li>
+<li>Can be enabled/disabled in config</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2>🐲 Monster Kill Rewards</h2>
+<p>Players can earn money by defeating monsters:</p>
+<ul>
+<li>Individual configuration system per monster</li>
+<li>Each monster can have its own reward set.</li>
+<li>Configurable via <code>MonsterReward</code> in <code>EconomyConfig</code></li>
+<li>Optional debug logs</li>
+</ul>
+<hr>
+<h2>⚙ Configuration Options</h2>
+<ul>
+<li>Enable/disable Ore Rewards</li>
+<li>Enable/disable Wood Rewards</li>
+<li>Configure Ore rewards per type</li>
+<li>Configure Wood rewards per type</li>
+<li>Configure Monster rewards per type</li>
+<li>Enable/disable Player Shop system (<code>EnablePlayerShop</code>)</li>
+<li>Enable/disable Admin Shop system (<code>EnableShop</code>)</li>
+<li>Set default Language (EN / PT / ES / <strong>RU</strong>)</li>
+<li>Customize Currency Symbol</li>
+</ul>
+<hr>
+<h2>🗄️ MySQL Database Support</h2>
+<p><strong>✨ New Feature:</strong> EconomySystem now includes full MySQL database support for scalable server deployments!</p>
+<h3>MySQL Configuration</h3>
+<p>Configure MySQL settings in <code>EconomySystem.json</code>:</p>
+<ul>
+<li><code>EnableMySQL</code> - Enable/disable MySQL storage (default: <code>false</code>)</li>
+<li><code>MySQLHost</code> - MySQL server host (default: <code>"localhost"</code>)</li>
+<li><code>MySQLPort</code> - MySQL server port (default: <code>3306</code>)</li>
+<li><code>MySQLUser</code> - MySQL username (default: <code>"root"</code>)</li>
+<li><code>MySQLPassword</code> - MySQL password (default: <code>""</code>)</li>
+<li><code>MySQLDatabaseName</code> - Database name (default: <code>"theeconomy"</code>)</li>
+<li><code>MySQLTableName</code> - Table name for player balances (default: <code>"bank"</code>)</li>
+<li><code>MySQLAdminShopTableName</code> - Table name for admin shop (default: <code>"adminshop"</code>)</li>
+<li><code>MySQLPlayerShopTableName</code> - Table name for player shops (default: <code>"playershop"</code>)</li>
+</ul>
+<h3>MySQL Features</h3>
+<ul>
+<li>✅ Full MySQL integration for all data storage</li>
+<li>✅ Automatic table creation on first connection</li>
+<li>✅ Seamless migration between JSON and MySQL</li>
+<li>✅ Thread-safe database operations</li>
+<li>✅ Automatic connection pooling and management</li>
+<li>✅ Supports all plugin features (balances, admin shop, player shops)</li>
+<li>✅ Data persists across server restarts</li>
+<li>✅ Ideal for large servers with many players</li>
+</ul>
+<h3>Storage Modes</h3>
+<ul>
+<li><strong>JSON Mode (Default):</strong> Data stored in JSON files (good for small/medium servers)</li>
+<li><strong>MySQL Mode:</strong> Data stored in MySQL database (recommended for large servers)</li>
+<li>You can switch between modes at any time - the plugin handles migration automatically</li>
+</ul>
+<hr>
+<h2>🌍 Translation / Localization System</h2>
+<p>EconomySystem includes full language support:</p>
+<ul>
+<li>Language_EN.json (English)</li>
+<li>Language_PT.json (Portuguese)</li>
+<li>Language_ES.json (Spanish)</li>
+<li><strong>Language_RU.json (Russian)</strong> ✨ New!</li>
+</ul>
+<p>✅ All shop UI, messages, tooltips and texts are fully translatable<br>✅ Supports placeholders for dynamic values<br>✅ Dynamic shop titles translated based on language<br>✅ Item names translated in all messages and GUIs</p>
+<p><strong>Russian Translation Credits:</strong> <strong>Lylex</strong> - Thank you for the Russian translation!</p>
+<hr>
+<h2>🎨 Color Code System</h2>
+<p><strong>✨ New Feature:</strong> EconomySystem includes a Minecraft-like color code system for customizing messages in chat, GUIs, and HUD!</p>
+<h3>Color Codes</h3>
+<p>Use <code>&amp;</code> or <code>§</code> followed by a code to apply colors and formatting:</p>
+<h4>Basic Colors</h4>
+<ul>
+<li><code>&amp;0</code> - Black</li>
+<li><code>&amp;1</code> - Dark Blue</li>
+<li><code>&amp;2</code> - Dark Green</li>
+<li><code>&amp;3</code> - Dark Cyan</li>
+<li><code>&amp;4</code> - Dark Red</li>
+<li><code>&amp;5</code> - Dark Purple</li>
+<li><code>&amp;6</code> - Gold</li>
+<li><code>&amp;7</code> - Gray</li>
+<li><code>&amp;8</code> - Dark Gray</li>
+<li><code>&amp;9</code> - Blue</li>
+<li><code>&amp;a</code> - Green</li>
+<li><code>&amp;b</code> - Cyan</li>
+<li><code>&amp;c</code> - Red</li>
+<li><code>&amp;d</code> - Pink</li>
+<li><code>&amp;e</code> - Yellow</li>
+<li><code>&amp;f</code> - White</li>
+</ul>
+<h4>Formatting Codes</h4>
+<ul>
+<li><code>&amp;l</code> - <strong>Bold</strong></li>
+<li><code>&amp;o</code> - <em>Italic</em></li>
+<li><code>&amp;r</code> - Reset (removes all formatting and colors)</li>
+</ul>
+<h3>Where It Works</h3>
+<ul>
+<li>✅ <strong>Chat Messages:</strong> All command messages, errors, success notifications</li>
+<li>✅ <strong>GUI Text:</strong> Window titles, labels, button text, tooltips, confirmations</li>
+<li>✅ <strong>HUD Text:</strong> All HUD labels, shop status, temporary notifications</li>
+</ul>
+<h3>Usage Examples</h3>
+<h4>In Translation Files (JSON)</h4>
+<div>
+<div>
+<div>&nbsp;</div>
+</div>
+<div>
+<pre><code>{
+  "chat_welcome": "&amp;aWelcome to the server!",
+  "chat_error": "&amp;cError: &amp;fSomething went wrong!",
+  "chat_info": "&amp;bInfo: &amp;fYour shop is open"
+}</code></pre>
+</div>
+</div>
+<h4>Combining Colors and Formatting</h4>
+<div>
+<div>
+<div>&nbsp;</div>
+</div>
+<div>
+<pre><code>&amp;l&amp;6Gold Bold Text
+&amp;c&amp;lRed Bold Text
+&amp;a&amp;oGreen Italic Text
+&amp;l&amp;6&amp;oGold Bold Italic Text</code></pre>
+</div>
+</div>
+<h4>Default HUD Colors</h4>
+<p>The plugin uses default colors in the HUD that can be customized in translation files:</p>
+<ul>
+<li><code>&amp;l&amp;6</code> - Bold Gold (for main labels: Nick, Money, Top Rank, Shop)</li>
+<li><code>&amp;a</code> - Green (for positive status: Shop Open, Gains)</li>
+<li><code>&amp;c</code> - Red (for negative status: Shop Closed)</li>
+<li><code>&amp;r</code> - Reset (returns to default after label)</li>
+</ul>
+<h4>Recommended Color Usage</h4>
+<ul>
+<li><strong>Success:</strong> <code>&amp;a</code> (Green) - <code>&amp;aOperation successful!</code></li>
+<li><strong>Error:</strong> <code>&amp;c</code> (Red) - <code>&amp;cError processing command!</code></li>
+<li><strong>Warning:</strong> <code>&amp;e</code> (Yellow) - <code>&amp;eWarning: Insufficient balance!</code></li>
+<li><strong>Info:</strong> <code>&amp;b</code> (Cyan) - <code>&amp;bInfo: Your shop is open</code></li>
+<li><strong>Highlight:</strong> <code>&amp;6</code> (Gold) - <code>&amp;6Top Rank: #1</code></li>
+<li><strong>Title:</strong> <code>&amp;l&amp;6</code> (Bold Gold) - <code>&amp;l&amp;6Administrative Shop</code></li>
+</ul>
+<h3>Quick Reference</h3>
+<table border="1" style="border-collapse: collapse; width: 100%;">
+<tbody>
+<tr>
+<td><strong>Code</strong></td>
+<td><strong>Color</strong></td>
+<td><strong>Example</strong></td>
+</tr>
+<tr>
+<td><code>&amp;0</code></td>
+<td>Black</td>
+<td><code>&amp;0Black Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;1</code></td>
+<td>Dark Blue</td>
+<td><code>&amp;1Dark Blue Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;2</code></td>
+<td>Dark Green</td>
+<td><code>&amp;2Dark Green Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;3</code></td>
+<td>Dark Cyan</td>
+<td><code>&amp;3Dark Cyan Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;4</code></td>
+<td>Dark Red</td>
+<td><code>&amp;4Dark Red Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;5</code></td>
+<td>Dark Purple</td>
+<td><code>&amp;5Dark Purple Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;6</code></td>
+<td>Gold</td>
+<td><code>&amp;6Gold Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;7</code></td>
+<td>Gray</td>
+<td><code>&amp;7Gray Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;8</code></td>
+<td>Dark Gray</td>
+<td><code>&amp;8Dark Gray Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;9</code></td>
+<td>Blue</td>
+<td><code>&amp;9Blue Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;a</code></td>
+<td>Green</td>
+<td><code>&amp;aGreen Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;b</code></td>
+<td>Cyan</td>
+<td><code>&amp;bCyan Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;c</code></td>
+<td>Red</td>
+<td><code>&amp;cRed Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;d</code></td>
+<td>Pink</td>
+<td><code>&amp;dPink Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;e</code></td>
+<td>Yellow</td>
+<td><code>&amp;eYellow Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;f</code></td>
+<td>White</td>
+<td><code>&amp;fWhite Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;l</code></td>
+<td><strong>Bold</strong></td>
+<td><code>&amp;lBold Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;o</code></td>
+<td><em>Italic</em></td>
+<td><code>&amp;oItalic Text</code></td>
+</tr>
+<tr>
+<td><code>&amp;r</code></td>
+<td>Reset</td>
+<td><code>&amp;rNormal Text</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> You can also use <code>§</code> instead of <code>&amp;</code> (e.g., <code>§a</code> = <code>&amp;a</code>)</p>
+<hr>
+<h2>🔌 Public API (EconomyAPI)</h2>
+<p>EconomySystem includes a public API located at:<br><code>com.economy.api.EconomyAPI</code></p>
+<h3>Available API Methods</h3>
+<h4>Balance Queries</h4>
+<ul>
+<li><code>getBalance(UUID playerUUID)</code></li>
+<li><code>getBalance(String playerName)</code></li>
+</ul>
+<h4>Balance Management</h4>
+<ul>
+<li><code>setBalance(UUID playerUUID, double value)</code></li>
+<li><code>setBalance(String playerName, double value)</code> <em>(returns boolean)</em></li>
+<li><code>addBalance(UUID playerUUID, double value)</code></li>
+<li><code>addBalance(String playerName, double value)</code> <em>(returns boolean)</em></li>
+<li><code>removeBalance(UUID playerUUID, double value)</code> <em>(returns boolean)</em></li>
+<li><code>removeBalance(String playerName, double value)</code> <em>(returns boolean)</em></li>
+</ul>
+<h4>Balance Checks</h4>
+<ul>
+<li><code>hasBalance(UUID playerUUID, double value)</code></li>
+<li><code>hasBalance(String playerName, double value)</code></li>
+</ul>
+<h4>Player Info Helpers</h4>
+<ul>
+<li><code>getPlayerName(UUID playerUUID)</code></li>
+<li><code>getPlayerUUID(String playerName)</code></li>
+</ul>
+<h4>Formatted Balance</h4>
+<ul>
+<li><code>getFormattedBalance(UUID playerUUID)</code></li>
+<li><code>getFormattedBalance(String playerName)</code></li>
+</ul>
+<h4>Shop Management</h4>
+<ul>
+<li><code>openShop(Player player)</code> <em>(returns boolean)</em>
+  <ul>
+    <li>Opens the shop for a player</li>
+    <li>Automatically checks if shop is enabled in configuration</li>
+    <li>Returns <code>true</code> if shop was opened successfully, <code>false</code> otherwise</li>
+  </ul>
+</li>
+</ul>
+<h3>API Example</h3>
+<div>
+<div>
+<div>&nbsp;</div>
+</div>
+<div>
+<pre><code>import com.economy.api.EconomyAPI;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import java.util.UUID;
+
+// Get API instance
+EconomyAPI api = EconomyAPI.getInstance();
+
+// Balance queries
+double balance = api.getBalance(playerUUID);
+double balanceByName = api.getBalance("PlayerName");
+
+// Balance management
+api.setBalance(playerUUID, 1000.0);
+api.addBalance(playerUUID, 100.0);
+boolean success = api.removeBalance(playerUUID, 50.0);
+
+// Balance checks
+boolean hasEnough = api.hasBalance(playerUUID, 200.0);
+
+// Formatted balance
+String formatted = api.getFormattedBalance(playerUUID);
+
+// Player info
+String name = api.getPlayerName(playerUUID);
+UUID uuid = api.getPlayerUUID("PlayerName");
+
+// Open shop (in an event or command)
+public void onPlayerCommand(Player player) {
+    EconomyAPI api = EconomyAPI.getInstance();
+    
+    // Check balance
+    double balance = api.getBalance(player.getUuid());
+    
+    // Add money
+    api.addBalance(player.getUuid(), 100.0);
+    
+    // Open administrative shop
+    if (api.openShop(player)) {
+        // Shop opened successfully
+    } else {
+        // Failed to open shop (may be disabled or player offline)
+    }
+}</code></pre>
+</div>
+</div>
+<hr>
+<h2>🔗 Placeholder API</h2>
+<p>EconomySystem includes a public Placeholder API for other plugins:</p>
+<p><code>com.economy.util.PlaceholderAPI</code></p>
+<h3>Available Placeholders</h3>
+<ul>
+<li><code>%balance%</code> - Player balance (numeric value)</li>
+<li><code>%balance_formated%</code> - Player balance (formatted with currency symbol)</li>
+</ul>
+<h3>Placeholder API Methods</h3>
+<ul>
+<li><code>PlaceholderAPI.getInstance().replacePlaceholders(UUID playerUUID, String text)</code></li>
+<li><code>PlaceholderAPI.getInstance().replacePlaceholders(String playerName, String text)</code></li>
+<li><code>PlaceholderAPI.getInstance().containsPlaceholders(String text)</code></li>
+</ul>
+<h3>Placeholder Example</h3>
+<div>
+<div>
+<div>&nbsp;</div>
+</div>
+<div>
+<pre><code>PlaceholderAPI placeholderAPI = PlaceholderAPI.getInstance();
+
+String text = "Your balance is %balance_formated%";
+String result = placeholderAPI.replacePlaceholders(playerUUID, text);
+// Result: "Your balance is $1,234.56"
+</code></pre>
+</div>
+</div>
+<hr>
+<h2>🔐 Permissions</h2>
+<p>All permissions are registered and visible in LuckPerms:</p>
+<h3>Player Permissions</h3>
+<ul>
+<li><code>theeconomy.player.money</code> - Access to <code>/money</code> command</li>
+<li><code>theeconomy.player.money.pay</code> - Access to <code>/money pay</code> command</li>
+<li><code>theeconomy.player.money.top</code> - Access to <code>/money top</code> command</li>
+<li><code>theeconomy.player.shop</code> - Access to <code>/shop</code> or <code>/loja</code> command</li>
+<li><code>theeconomy.player.iteminfo</code> - Access to <code>/iteminfo</code> command</li>
+<li><code>theeconomy.player.myshop</code> - Access to <code>/myshop</code> commands</li>
+<li><code>theeconomy.player.myshop.manager</code> - Access to <code>/myshop</code> manager</li>
+<li><code>theeconomy.player.playershop</code> - Access to <code>/playershop</code> or <code>/pshop</code> command</li>
+<li><code>theeconomy.player.shops</code> - Access to <code>/shops</code> command</li>
+</ul>
+<h3>Admin Permissions</h3>
+<ul>
+<li><code>theeconomy.admin.money.set</code> - Access to <code>/money set</code> command</li>
+<li><code>theeconomy.admin.money.give</code> - Access to <code>/money give</code> command</li>
+<li><code>theeconomy.admin.shop.add</code> - Access to <code>/shop add</code> command</li>
+<li><code>theeconomy.admin.shop.add</code> - Access to <code>/shop add</code> command</li>
+<li><code>theeconomy.admin.shop.manager</code> - Access to <code>/shop manager</code> command</li>
+</ul>
+<h3>Permission Groups</h3>
+<ul>
+<li><code>theeconomy.player.*</code> - Grants all player permissions</li>
+<li><code>theeconomy.admin.*</code> - Grants all admin permissions</li>
+<li><code>theeconomy.*</code> - Grants all permissions</li>
+</ul>
+<hr>
+<h3>📌 Requirements</h3>
+<ul>
+<li>Compatible with latest Hytale server builds</li>
+<li>Uses Hytale Modding API</li>
+</ul>
+<h3>📦 Storage</h3>
+<ul>
+<li><strong>Storage Mode:</strong> JSON (default) or MySQL (configurable)</li>
+<li><strong>Balances are stored in: </strong><code>universe/EconomySystem/Balances.json</code> <em>(JSON mode)</em> or MySQL table <em>(MySQL mode)</em></li>
+<li><strong>PlayerShops are stored in:</strong><code>universe/EconomySystem/PlayerShop.json</code> <em>(JSON mode)</em> or MySQL table <em>(MySQL mode)</em></li>
+<li><strong>AdminShops are stored in: </strong><code>universe/EconomySystem/Shop.json</code> <em>(JSON mode)</em> or MySQL table <em>(MySQL mode)</em></li>
+<li><strong>Config File are stored in: </strong><code>mods/Economy_EconomySystem/EconomySystem.json</code></li>
+</ul>
+<p><strong>Version:</strong> 1.0.5-beta</p>
+<p><strong>Credits:</strong> Russian translation by <strong>Lylex</strong> - Thank you for your contribution! 🙏</p>
+

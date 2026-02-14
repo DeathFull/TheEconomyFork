@@ -1,0 +1,23 @@
+{
+  "Group": "Economy",
+  "Name": "EconomySystem",
+  "Version": "1.0.0",
+  "Description": "${description}",
+  "Authors": [
+    {
+      "Name": "EconomySystem"
+    }
+  ],
+  "Website": "${website}",
+  "ServerVersion": "*",
+  "Dependencies": {},
+  "OptionalDependencies": {
+    "Hytale:EntityModule": "*",
+    "Buuz135:MultipleHUD": "*"
+  },
+  "DisabledByDefault": false,
+  "Main": "${entry_point}",
+  "IncludesAssetPack": true
+}
+
+

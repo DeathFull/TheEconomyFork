@@ -1,0 +1,152 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'org.jetbrains.gradle.plugin.idea-ext' version '1.3'
+    id 'com.gradleup.shadow' version '9.0.0-beta12'
+}
+
+version = project.version;
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+    sourceCompatibility = JavaVersion.toVersion(java_version)
+    targetCompatibility = JavaVersion.toVersion(java_version)
+    withSourcesJar()
+    withJavadocJar()
+}
+
+javadoc {
+    options.addStringOption('Xdoclint:-missing', '-quiet')
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    // HytaleServer.jar é uma dependência de compilação apenas (não deve ser incluída no JAR final)
+    compileOnly(files(System.getProperty("user.home") + "/AppData/Roaming/Hytale/install/release/package/game/$game_build/Server/HytaleServer.jar"))
+    
+    // MySQL Connector for database support (será incluído no Shadow JAR)
+    implementation 'com.mysql:mysql-connector-j:9.1.0'
+    
+    // VaultUnlocked dependency (compileOnly - apenas se o arquivo existir)
+    // Adicione o JAR do VaultUnlocked na pasta libs/ do projeto
+    // Procura por qualquer arquivo que comece com "VaultUnlocked-Hytale-"
+    try {
+        def libsDir = file("libs")
+        if (libsDir.exists() && libsDir.isDirectory()) {
+            def vaultUnlockedJar = libsDir.listFiles().find { it.name.startsWith("VaultUnlocked-Hytale-") && it.name.endsWith(".jar") }
+            if (vaultUnlockedJar != null && vaultUnlockedJar.exists()) {
+                compileOnly(files(vaultUnlockedJar))
+                println "VaultUnlocked found: ${vaultUnlockedJar.name}, adding as compileOnly dependency."
+            } else {
+                println "VaultUnlocked JAR not found in libs/, skipping dependency."
+            }
+        } else {
+            println "libs/ directory not found, skipping VaultUnlocked dependency."
+        }
+    } catch (Exception e) {
+        println "Error checking for VaultUnlocked: ${e.message}, skipping dependency."
+    }
+    
+    // Cassaforte dependency (compileOnly - apenas se o arquivo existir)
+    // Adicione o JAR do Cassaforte na pasta libs/ do projeto
+    // Procura por qualquer arquivo que comece com "Cassaforte-" ou "cassaforte-"
+    // API: https://www.curseforge.com/hytale/mods/cassaforte
+    try {
+        def libsDir = file("libs")
+        if (libsDir.exists() && libsDir.isDirectory()) {
+            def cassaforteJar = libsDir.listFiles().find { 
+                (it.name.toLowerCase().startsWith("cassaforte-") || it.name.startsWith("Cassaforte-")) && it.name.endsWith(".jar") 
+            }
+            if (cassaforteJar != null && cassaforteJar.exists()) {
+                compileOnly(files(cassaforteJar))
+                println "Cassaforte found: ${cassaforteJar.name}, adding as compileOnly dependency."
+            } else {
+                println "Cassaforte JAR not found in libs/, skipping dependency."
+            }
+        } else {
+            println "libs/ directory not found, skipping Cassaforte dependency."
+        }
+    } catch (Exception e) {
+        println "Error checking for Cassaforte: ${e.message}, skipping dependency."
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+processResources {
+    var expandProps = [
+        'name'          : project.name,
+        'version'       : project.version,
+        'group'         : project.group,
+        'description'   : mod_description,
+        'website'       : website,
+        'server_version': server_version,
+        'entry_point'   : entry_point
+    ]
+
+    filesMatching(['manifest.json']) {
+        expand expandProps
+    }
+    inputs.properties(expandProps)
+}
+
+def serverRunDir = file("$projectDir/run")
+
+idea.project.settings.runConfigurations {
+    'HytaleServer'(org.jetbrains.gradle.ext.Application) {
+        mainClass = 'com.hypixel.hytale.Main'
+        moduleName = project.idea.module.name + '.main'
+        programParameters = "--allow-op --disable-sentry --assets=$hytaleHome/$patchline/package/game/latest/Assets.zip --mods=${file("src/main/").absolutePath}  --auth-mode=authenticated"
+        workingDirectory = serverRunDir.absolutePath
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    if (providers.environmentVariable("HT_MAVEN_USERNAME").present) {
+        repositories {
+            maven() {
+                url = "https://maven.hytale-modding.info/releases"
+                credentials {
+                    username = providers.environmentVariable("HT_MAVEN_USERNAME").get()
+                    password = providers.environmentVariable("HT_MAVEN_PASSWORD").get()
+                }
+            }
+        }
+    }
+}
+
+// Shadow JAR bundles MySQL connector and other dependencies
+shadowJar {
+    archiveBaseName = project.name
+    archiveVersion = project.version
+    archiveClassifier = '' // Sem classifier, substitui o JAR normal
+    
+    // HytaleServer.jar já está como compileOnly, então não será incluído automaticamente
+    // Apenas inclui dependências de runtime (como MySQL connector ~2MB)
+    
+    mergeServiceFiles()
+}
+
+// Desabilita o JAR normal e usa o Shadow JAR no lugar
+jar {
+    enabled = false
+}
+
+tasks.named('build') {
+    dependsOn shadowJar
+}
+
+

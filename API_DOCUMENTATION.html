@@ -1,0 +1,95 @@
+<h2>🔌 Public API (EconomyAPI)</h2>
+<p>EconomySystem includes a public API located at:<br><code>com.economy.api.EconomyAPI</code></p>
+<h3>Available API Methods</h3>
+<h4>Balance Queries</h4>
+<ul>
+<li><code>getBalance(UUID playerUUID)</code></li>
+<li><code>getBalance(String playerName)</code></li>
+</ul>
+<h4>Balance Management</h4>
+<ul>
+<li><code>setBalance(UUID playerUUID, double value)</code></li>
+<li><code>setBalance(String playerName, double value)</code> <em>(returns boolean)</em></li>
+<li><code>addBalance(UUID playerUUID, double value)</code></li>
+<li><code>addBalance(String playerName, double value)</code> <em>(returns boolean)</em></li>
+<li><code>removeBalance(UUID playerUUID, double value)</code> <em>(returns boolean)</em></li>
+<li><code>removeBalance(String playerName, double value)</code> <em>(returns boolean)</em></li>
+</ul>
+<h4>Balance Checks</h4>
+<ul>
+<li><code>hasBalance(UUID playerUUID, double value)</code></li>
+<li><code>hasBalance(String playerName, double value)</code></li>
+</ul>
+<h4>Player Info Helpers</h4>
+<ul>
+<li><code>getPlayerName(UUID playerUUID)</code></li>
+<li><code>getPlayerUUID(String playerName)</code></li>
+</ul>
+<h4>Formatted Balance</h4>
+<ul>
+<li><code>getFormattedBalance(UUID playerUUID)</code></li>
+<li><code>getFormattedBalance(String playerName)</code></li>
+</ul>
+<h4>Shop Management</h4>
+<ul>
+<li><code>openShop(Player player)</code> <em>(returns boolean)</em>
+  <ul>
+    <li>Opens the administrative shop for a player</li>
+    <li>Automatically checks if shop is enabled in configuration</li>
+    <li>Returns <code>true</code> if shop was opened successfully, <code>false</code> otherwise</li>
+  </ul>
+</li>
+</ul>
+<h3>API Example</h3>
+<div>
+<div>
+<div>&nbsp;</div>
+</div>
+<div>
+<pre><code>import com.economy.api.EconomyAPI;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import java.util.UUID;
+
+// Get API instance
+EconomyAPI api = EconomyAPI.getInstance();
+
+// Balance queries
+double balance = api.getBalance(playerUUID);
+double balanceByName = api.getBalance("PlayerName");
+
+// Balance management
+api.setBalance(playerUUID, 1000.0);
+api.addBalance(playerUUID, 100.0);
+boolean success = api.removeBalance(playerUUID, 50.0);
+
+// Balance checks
+boolean hasEnough = api.hasBalance(playerUUID, 200.0);
+
+// Formatted balance
+String formatted = api.getFormattedBalance(playerUUID);
+
+// Player info
+String name = api.getPlayerName(playerUUID);
+UUID uuid = api.getPlayerUUID("PlayerName");
+
+// Open shop (in an event or command)
+public void onPlayerCommand(Player player) {
+    EconomyAPI api = EconomyAPI.getInstance();
+    
+    // Check balance
+    double balance = api.getBalance(player.getUuid());
+    
+    // Add money
+    api.addBalance(player.getUuid(), 100.0);
+    
+    // Open administrative shop
+    if (api.openShop(player)) {
+        // Shop opened successfully
+    } else {
+        // Failed to open shop (may be disabled or player offline)
+    }
+}</code></pre>
+</div>
+</div>
+<hr>
+

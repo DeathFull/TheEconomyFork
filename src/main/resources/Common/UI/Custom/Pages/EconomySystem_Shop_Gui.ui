@@ -1,0 +1,32 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {
+
+  $C.@Container {
+    Anchor: (Width: 1030, Height: 700);
+
+    #Title {
+      Group {
+        $C.@Title {
+          @Text = "Shop - TheEconomy";
+        }
+      }
+    }
+
+    #Content {
+      LayoutMode: Left;
+
+      Group #ShopContent {
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        Padding: (Left: 10, Top: 10);
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+
+        // Itens serão adicionados dinamicamente aqui
+      }
+    }
+
+  }
+}
+
+$C.@BackButton {}

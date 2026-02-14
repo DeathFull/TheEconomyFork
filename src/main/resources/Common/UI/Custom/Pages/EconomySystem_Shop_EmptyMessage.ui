@@ -1,0 +1,12 @@
+Group {
+  Label #EmptyMessageLabel {
+    Style: (
+      FontSize: 16,
+      TextColor: #CCCCCC,
+      HorizontalAlignment: Center,
+      VerticalAlignment: Center
+    );
+    Anchor: (Width: 1000, Height: 40);
+  }
+}
+
