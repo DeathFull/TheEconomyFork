@@ -1,3 +1,8 @@
+Note: I am not the original developer of this project. The developer gave me these files, and I have simply open-sourced them. Please do not open issues, as they will not be fixed. Fork this repo and create your own version of the plugin.
+
+Curseforge Page: https://www.curseforge.com/hytale/mods/theeconomy
+
+
 # EconomySystem - Sistema de Economia Completo para Hytale
 
 ## 📋 Índice
