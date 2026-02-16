@@ -8,6 +8,8 @@ import com.economy.playershop.PlayerShopTracker;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.hypixel.hytale.logger.HytaleLogger;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 import javax.annotation.Nonnull;
 import java.lang.reflect.Type;
@@ -21,9 +23,9 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 /**
- * MySQL storage provider for PlayerShop data.
- * 
- * Stores player shop info and items in MySQL database.
+ * HikariCP-based MariaDB storage provider for PlayerShop data.
+ *
+ * Stores player shop info and items in MariaDB database using HikariCP connection pool.
  * Database: theeconomy
  * Tables: {tablePrefix}_info and {tablePrefix}_items
  * 
@@ -59,7 +61,7 @@ public class MySQLPlayerShopStorageProvider {
         return t;
     });
     
-    private Connection connection;
+    private HikariDataSource dataSource;
     private String infoTableName;
     private String itemsTableName;
     private String host;
@@ -82,11 +84,8 @@ public class MySQLPlayerShopStorageProvider {
                 infoTableName = tablePrefix + "_info";
                 itemsTableName = tablePrefix + "_items";
                 
-                // Load MySQL driver
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                
-                // First, connect without database to create it if it doesn't exist
-                String urlNoDb = String.format("jdbc:mysql://%s:%d?useSSL=false&allowPublicKeyRetrieval=true",
+                // First, create database if it doesn't exist using temporary connection
+                String urlNoDb = String.format("jdbc:mariadb://%s:%d?useSSL=false&allowPublicKeyRetrieval=true",
                     host, port);
                 
                 try (Connection tempConnection = DriverManager.getConnection(urlNoDb, username, password);
@@ -97,34 +96,69 @@ public class MySQLPlayerShopStorageProvider {
                     stmt.executeUpdate(createDbSql);
                 }
                 
-                // Now connect to the specific database
-                String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true",
+                // Configure HikariCP for MariaDB
+                HikariConfig hikariConfig = new HikariConfig();
+
+                // JDBC URL for MariaDB
+                String jdbcUrl = String.format("jdbc:mariadb://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true",
                     host, port, database);
-                
-                connection = DriverManager.getConnection(url, username, password);
-                
+                hikariConfig.setJdbcUrl(jdbcUrl);
+                hikariConfig.setUsername(username);
+                hikariConfig.setPassword(password);
+
+                // Pool settings
+                hikariConfig.setPoolName("EconomyPlayerShopPool");
+                hikariConfig.setMaximumPoolSize(10);
+                hikariConfig.setMinimumIdle(5);
+
+                // Timeouts (in milliseconds)
+                hikariConfig.setConnectionTimeout(30000);     // 30 seconds
+                hikariConfig.setIdleTimeout(600000);          // 10 minutes
+                hikariConfig.setMaxLifetime(1800000);         // 30 minutes
+                hikariConfig.setValidationTimeout(5000);      // 5 seconds
+                hikariConfig.setKeepaliveTime(120000);        // 2 minutes
+
+                // Connection behavior
+                hikariConfig.setAutoCommit(true);
+                hikariConfig.setConnectionInitSql("SET NAMES utf8mb4");
+
+                // Leak detection (logs warning if connection not returned within threshold)
+                hikariConfig.setLeakDetectionThreshold(60000); // 60 seconds
+
+                // MariaDB-specific optimizations
+                hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
+                hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
+                hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+                hikariConfig.addDataSourceProperty("useServerPrepStmts", "true");
+                hikariConfig.addDataSourceProperty("useLocalSessionState", "true");
+                hikariConfig.addDataSourceProperty("rewriteBatchedStatements", "true");
+                hikariConfig.addDataSourceProperty("cacheResultSetMetadata", "true");
+                hikariConfig.addDataSourceProperty("cacheServerConfiguration", "true");
+                hikariConfig.addDataSourceProperty("maintainTimeStats", "false");
+
+                // Create HikariCP DataSource
+                dataSource = new HikariDataSource(hikariConfig);
+
                 // Create tables
                 createTables();
                 
                 // Connection established - will log after data is loaded
                 
-            } catch (ClassNotFoundException e) {
-                LOGGER.at(Level.SEVERE).log("MySQL driver not found! Add mysql-connector-j to dependencies");
-                throw new RuntimeException("MySQL driver not available", e);
             } catch (SQLException e) {
-                LOGGER.at(Level.SEVERE).log("Failed to connect to MySQL for PlayerShop: %s", e.getMessage());
-                throw new RuntimeException("MySQL connection failed", e);
+                LOGGER.at(Level.SEVERE).log("Failed to connect to MariaDB for PlayerShop: %s", e.getMessage());
+                throw new RuntimeException("MariaDB connection failed", e);
             }
         }, executor);
     }
     
     private void createTables() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            LOGGER.at(Level.SEVERE).log("Cannot create tables: connection is null or closed");
-            throw new SQLException("Connection is null or closed");
+        if (dataSource == null || dataSource.isClosed()) {
+            LOGGER.at(Level.SEVERE).log("Cannot create tables: dataSource is null or closed");
+            throw new SQLException("DataSource is null or closed");
         }
         
-        try (Statement stmt = connection.createStatement()) {
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
             // Info table
             String createInfoTableSql = String.format("""
                 CREATE TABLE IF NOT EXISTS `%s` (
@@ -176,10 +210,10 @@ public class MySQLPlayerShopStorageProvider {
     
     public CompletableFuture<Void> loadShopData(@Nonnull PlayerShopTracker tracker) {
         return CompletableFuture.runAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 // Load all player shop info
                 String infoSql = String.format("SELECT UUID, NickName, CustomName, ShopIcon, isOpen, Tabs FROM `%s`", infoTableName);
-                try (Statement stmt = connection.createStatement();
+                try (Statement stmt = conn.createStatement();
                      ResultSet rs = stmt.executeQuery(infoSql)) {
                     while (rs.next()) {
                         UUID uuid = UUID.fromString(rs.getString("UUID"));
@@ -219,7 +253,7 @@ public class MySQLPlayerShopStorageProvider {
                 // Load all items
                 String itemsSql = String.format("SELECT UniqueId, ItemId, PriceBuy, PriceSell, Durability, MaxDurability, Stock, Tab, OwnerUuid FROM `%s` ORDER BY UniqueId", itemsTableName);
                 int maxUniqueId = 0;
-                try (Statement stmt = connection.createStatement();
+                try (Statement stmt = conn.createStatement();
                      ResultSet rs = stmt.executeQuery(itemsSql)) {
                     while (rs.next()) {
                         int uniqueId = rs.getInt("UniqueId");
@@ -265,14 +299,14 @@ public class MySQLPlayerShopStorageProvider {
     
     public CompletableFuture<PlayerShopItem> addItem(@Nonnull PlayerShopItem item) {
         return CompletableFuture.supplyAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 // Don't include UniqueId in INSERT - let MySQL AUTO_INCREMENT handle it
                 String sql = String.format("""
                     INSERT INTO `%s` (ItemId, PriceBuy, PriceSell, Durability, MaxDurability, Stock, Tab, OwnerUuid)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """, itemsTableName);
                 
-                try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                     ps.setString(1, item.getItemId());
                     ps.setDouble(2, item.getPriceBuy());
                     ps.setDouble(3, item.getPriceSell());
@@ -302,11 +336,11 @@ public class MySQLPlayerShopStorageProvider {
     
     public CompletableFuture<Boolean> removeItem(int uniqueId) {
         return CompletableFuture.supplyAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 // Primeiro verifica se o item existe
                 String checkSql = String.format("SELECT UniqueId FROM `%s` WHERE UniqueId = ?", itemsTableName);
                 boolean itemExists = false;
-                try (PreparedStatement checkPs = connection.prepareStatement(checkSql)) {
+                try (PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
                     checkPs.setInt(1, uniqueId);
                     try (ResultSet rs = checkPs.executeQuery()) {
                         itemExists = rs.next();
@@ -319,7 +353,7 @@ public class MySQLPlayerShopStorageProvider {
                 
                 // Remove o item
                 String sql = String.format("DELETE FROM `%s` WHERE UniqueId = ?", itemsTableName);
-                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setInt(1, uniqueId);
                     int rowsAffected = ps.executeUpdate();
                     return rowsAffected > 0;
@@ -333,14 +367,14 @@ public class MySQLPlayerShopStorageProvider {
     
     public CompletableFuture<Boolean> updateItem(@Nonnull PlayerShopItem item) {
         return CompletableFuture.supplyAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 String sql = String.format("""
                     UPDATE `%s` 
                     SET ItemId = ?, PriceBuy = ?, PriceSell = ?, Durability = ?, MaxDurability = ?, Stock = ?, Tab = ?
                     WHERE UniqueId = ?
                     """, itemsTableName);
                 
-                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, item.getItemId());
                     ps.setDouble(2, item.getPriceBuy());
                     ps.setDouble(3, item.getPriceSell());
@@ -370,17 +404,12 @@ public class MySQLPlayerShopStorageProvider {
      */
     public void savePlayerInfoSync(@Nonnull UUID uuid, @Nonnull PlayerShopPlayer player, boolean isOpen, @Nonnull List<String> tabs) {
         // Verifica se a conexão está disponível antes de tentar salvar
-        try {
-            if (connection == null || connection.isClosed()) {
-                LOGGER.at(Level.WARNING).log("Cannot save player info for %s: MySQL connection is closed", uuid);
-                return;
-            }
-        } catch (SQLException e) {
-            LOGGER.at(Level.WARNING).log("Cannot check MySQL connection status for %s: %s", uuid, e.getMessage());
+        if (dataSource == null || dataSource.isClosed()) {
+            LOGGER.at(Level.WARNING).log("Cannot save player info for %s: HikariCP DataSource is closed", uuid);
             return;
         }
         
-        try {
+        try (Connection conn = dataSource.getConnection()) {
             String tabsJson = GSON.toJson(tabs);
             
             String sql = String.format("""
@@ -394,7 +423,7 @@ public class MySQLPlayerShopStorageProvider {
                     Tabs = VALUES(Tabs)
                 """, infoTableName);
             
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, uuid.toString());
                 ps.setString(2, player.getNick() != null ? player.getNick() : "");
                 ps.setString(3, player.getCustomName() != null ? player.getCustomName() : "");
@@ -442,20 +471,22 @@ public class MySQLPlayerShopStorageProvider {
     }
     
     private List<String> loadTabs(UUID ownerUuid) throws SQLException {
-        String sql = String.format("SELECT Tabs FROM `%s` WHERE UUID = ?", infoTableName);
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, ownerUuid.toString());
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    String tabsJson = rs.getString("Tabs");
-                    if (tabsJson != null && !tabsJson.isEmpty() && !tabsJson.equals("[]")) {
-                        try {
-                            List<String> tabs = GSON.fromJson(tabsJson, LIST_STRING_TYPE);
-                            if (tabs != null) {
-                                return tabs;
+        try (Connection conn = dataSource.getConnection()) {
+            String sql = String.format("SELECT Tabs FROM `%s` WHERE UUID = ?", infoTableName);
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, ownerUuid.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String tabsJson = rs.getString("Tabs");
+                        if (tabsJson != null && !tabsJson.isEmpty() && !tabsJson.equals("[]")) {
+                            try {
+                                List<String> tabs = GSON.fromJson(tabsJson, LIST_STRING_TYPE);
+                                if (tabs != null) {
+                                    return tabs;
+                                }
+                            } catch (Exception e) {
+                                LOGGER.at(Level.WARNING).log("Failed to parse tabs JSON for player %s: %s", ownerUuid, e.getMessage());
                             }
-                        } catch (Exception e) {
-                            LOGGER.at(Level.WARNING).log("Failed to parse tabs JSON for player %s: %s", ownerUuid, e.getMessage());
                         }
                     }
                 }
@@ -465,12 +496,14 @@ public class MySQLPlayerShopStorageProvider {
     }
     
     private void saveTabs(UUID ownerUuid, List<String> tabs) throws SQLException {
-        String tabsJson = GSON.toJson(tabs);
-        String sql = String.format("UPDATE `%s` SET Tabs = ? WHERE UUID = ?", infoTableName);
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, tabsJson);
-            ps.setString(2, ownerUuid.toString());
-            ps.executeUpdate();
+        try (Connection conn = dataSource.getConnection()) {
+            String tabsJson = GSON.toJson(tabs);
+            String sql = String.format("UPDATE `%s` SET Tabs = ? WHERE UUID = ?", infoTableName);
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, tabsJson);
+                ps.setString(2, ownerUuid.toString());
+                ps.executeUpdate();
+            }
         }
     }
     
@@ -485,21 +518,21 @@ public class MySQLPlayerShopStorageProvider {
      */
     public void shutdownSync() {
         try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
+            if (dataSource != null && !dataSource.isClosed()) {
+                dataSource.close();
             }
             executor.shutdown();
-            LOGGER.at(Level.INFO).log("MySQL PlayerShop connection closed");
-        } catch (SQLException e) {
-            LOGGER.at(Level.WARNING).log("Error closing MySQL PlayerShop connection: %s", e.getMessage());
+            LOGGER.at(Level.INFO).log("MySQL PlayerShop HikariCP pool closed");
+        } catch (Exception e) {
+            LOGGER.at(Level.WARNING).log("Error closing MySQL PlayerShop HikariCP pool: %s", e.getMessage());
         }
     }
     
     /**
-     * Getter para connection (usado durante shutdown)
+     * Getter pour dataSource (usado durante shutdown)
      */
-    public Connection getConnection() {
-        return connection;
+    public HikariDataSource getDataSource() {
+        return dataSource;
     }
     
     /**

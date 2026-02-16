@@ -22,17 +22,19 @@ javadoc {
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
+    maven { url 'https://maven.hytale.com/release' }
 }
 
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
-    // HytaleServer.jar é uma dependência de compilação apenas (não deve ser incluída no JAR final)
-    compileOnly(files(System.getProperty("user.home") + "/AppData/Roaming/Hytale/install/release/package/game/$game_build/Server/HytaleServer.jar"))
-    
-    // MySQL Connector for database support (será incluído no Shadow JAR)
-    implementation 'com.mysql:mysql-connector-j:9.1.0'
-    
+    compileOnly 'com.hypixel.hytale:Server:+'
+
+    implementation 'com.zaxxer:HikariCP:7.0.2'
+
+    // MariaDB Connector for database support (será incluído no Shadow JAR)
+    implementation 'org.mariadb.jdbc:mariadb-java-client:3.5.7'
+
     // VaultUnlocked dependency (compileOnly - apenas se o arquivo existir)
     // Adicione o JAR do VaultUnlocked na pasta libs/ do projeto
     // Procura por qualquer arquivo que comece com "VaultUnlocked-Hytale-"

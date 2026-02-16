@@ -5,6 +5,8 @@ import com.economy.config.EconomyConfig;
 import com.economy.economy.BalanceTracker;
 import com.economy.economy.PlayerBalance;
 import com.hypixel.hytale.logger.HytaleLogger;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 import javax.annotation.Nonnull;
 import java.sql.*;
@@ -15,9 +17,9 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 /**
- * MySQL storage provider for economy balance data.
- * 
- * Stores player balances in a MySQL database.
+ * HikariCP-based MariaDB storage provider for economy balance data.
+ *
+ * Stores player balances in a MariaDB database using HikariCP connection pool.
  * Database: theeconomy
  * Table: configurable (default: bank)
  * Columns: UUID (VARCHAR(36) PRIMARY KEY), Nickname (VARCHAR(64)), Balance (DOUBLE)
@@ -34,28 +36,28 @@ public class MySQLStorageProvider {
         return t;
     });
     
-    private Connection connection;
+    private HikariDataSource dataSource;
     private BalanceTracker balanceTracker;
     private int playerCount = 0;
     private String tableName = "bank"; // Default table name
-    
+    private String host;
+    private int port;
+    private String database;
+
     public CompletableFuture<Void> initialize() {
         return CompletableFuture.runAsync(() -> {
             try {
                 EconomyConfig config = Main.CONFIG.get();
                 
-                String host = config.getMySQLHost();
-                int port = config.getMySQLPort();
-                String database = config.getMySQLDatabaseName(); // Configurable database name
+                this.host = config.getMySQLHost();
+                this.port = config.getMySQLPort();
+                this.database = config.getMySQLDatabaseName(); // Configurable database name
                 String username = config.getMySQLUser();
                 String password = config.getMySQLPassword();
                 tableName = config.getMySQLTableName(); // Get table name from config
                 
-                // Load MySQL driver
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                
-                // First, connect without database to create it if it doesn't exist
-                String urlNoDb = String.format("jdbc:mysql://%s:%d?useSSL=false&allowPublicKeyRetrieval=true",
+                // First, create database if it doesn't exist using temporary connection
+                String urlNoDb = String.format("jdbc:mariadb://%s:%d?useSSL=false&allowPublicKeyRetrieval=true",
                     host, port);
                 
                 try (Connection tempConnection = DriverManager.getConnection(urlNoDb, username, password);
@@ -66,13 +68,49 @@ public class MySQLStorageProvider {
                     stmt.executeUpdate(createDbSql);
                 }
                 
-                // Now connect to the specific database
-                String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true",
+                // Configure HikariCP for MariaDB
+                HikariConfig hikariConfig = new HikariConfig();
+
+                // JDBC URL for MariaDB
+                String jdbcUrl = String.format("jdbc:mariadb://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true",
                     host, port, database);
-                
-                // Connect to the database
-                connection = DriverManager.getConnection(url, username, password);
-                
+                hikariConfig.setJdbcUrl(jdbcUrl);
+                hikariConfig.setUsername(username);
+                hikariConfig.setPassword(password);
+
+                // Pool settings
+                hikariConfig.setPoolName("EconomyBalancePool");
+                hikariConfig.setMaximumPoolSize(10);
+                hikariConfig.setMinimumIdle(5);
+
+                // Timeouts (in milliseconds)
+                hikariConfig.setConnectionTimeout(30000);     // 30 seconds
+                hikariConfig.setIdleTimeout(600000);          // 10 minutes
+                hikariConfig.setMaxLifetime(1800000);         // 30 minutes
+                hikariConfig.setValidationTimeout(5000);      // 5 seconds
+                hikariConfig.setKeepaliveTime(120000);        // 2 minutes
+
+                // Connection behavior
+                hikariConfig.setAutoCommit(true);
+                hikariConfig.setConnectionInitSql("SET NAMES utf8mb4");
+
+                // Leak detection (logs warning if connection not returned within threshold)
+                hikariConfig.setLeakDetectionThreshold(60000); // 60 seconds
+
+                // MariaDB-specific optimizations
+                hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
+                hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
+                hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+                hikariConfig.addDataSourceProperty("useServerPrepStmts", "true");
+                hikariConfig.addDataSourceProperty("useLocalSessionState", "true");
+                hikariConfig.addDataSourceProperty("rewriteBatchedStatements", "true");
+                hikariConfig.addDataSourceProperty("cacheResultSetMetadata", "true");
+                hikariConfig.addDataSourceProperty("cacheServerConfiguration", "true");
+                hikariConfig.addDataSourceProperty("maintainTimeStats", "false");
+
+                // Create HikariCP DataSource
+                dataSource = new HikariDataSource(hikariConfig);
+
                 // Create tables
                 createTables();
                 
@@ -84,18 +122,16 @@ public class MySQLStorageProvider {
                 
                 LOGGER.at(Level.INFO).log("MySQL connected: %s:%d/%s (%d players)", host, port, database, playerCount);
                 
-            } catch (ClassNotFoundException e) {
-                LOGGER.at(Level.SEVERE).log("MySQL driver not found! Add mysql-connector-j to dependencies");
-                throw new RuntimeException("MySQL driver not available", e);
             } catch (SQLException e) {
-                LOGGER.at(Level.SEVERE).log("Failed to connect to MySQL: %s", e.getMessage());
-                throw new RuntimeException("MySQL connection failed", e);
+                LOGGER.at(Level.SEVERE).log("Failed to connect to MariaDB: %s", e.getMessage());
+                throw new RuntimeException("MariaDB connection failed", e);
             }
         }, executor);
     }
     
     private void createTables() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
             // Create table with configurable name, UUID as PRIMARY KEY
             String createTableSql = String.format("""
                 CREATE TABLE IF NOT EXISTS `%s` (
@@ -115,9 +151,9 @@ public class MySQLStorageProvider {
     private void loadAllPlayers() {
         playerCount = 0; // Reset counter
         balanceTracker = new BalanceTracker(); // Reset tracker
-        try {
+        try (Connection conn = dataSource.getConnection()) {
             String sql = String.format("SELECT UUID, Nickname, Balance, Cash FROM `%s`", tableName);
-            try (Statement stmt = connection.createStatement();
+            try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(sql)) {
                 while (rs.next()) {
                     UUID uuid = UUID.fromString(rs.getString("UUID"));
@@ -151,9 +187,9 @@ public class MySQLStorageProvider {
     
     public CompletableFuture<PlayerBalance> loadPlayer(@Nonnull UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 String sql = String.format("SELECT Nickname, Balance, Cash FROM `%s` WHERE UUID = ?", tableName);
-                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, playerUuid.toString());
                     try (ResultSet rs = ps.executeQuery()) {
                         if (rs.next()) {
@@ -197,7 +233,7 @@ public class MySQLStorageProvider {
     }
     
     private void savePlayerSync(@Nonnull UUID playerUuid, @Nonnull PlayerBalance balance) {
-        try {
+        try (Connection conn = dataSource.getConnection()) {
             // Verifica se o player já existe no tracker
             boolean playerExists = balanceTracker.getBalances().length > 0 && 
                                    java.util.Arrays.stream(balanceTracker.getBalances())
@@ -212,7 +248,7 @@ public class MySQLStorageProvider {
                     Cash = VALUES(Cash)
                 """, tableName);
             
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, playerUuid.toString());
                 ps.setString(2, balance.getNick() != null ? balance.getNick() : "");
                 ps.setDouble(3, balance.getBalance());
@@ -274,13 +310,13 @@ public class MySQLStorageProvider {
                 }
             }
             
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
+            if (dataSource != null && !dataSource.isClosed()) {
+                dataSource.close();
             }
             executor.shutdown();
-            LOGGER.at(Level.INFO).log("MySQL connection closed");
-        } catch (SQLException e) {
-            LOGGER.at(Level.WARNING).log("Error closing MySQL connection: %s", e.getMessage());
+            LOGGER.at(Level.INFO).log("MySQL HikariCP pool closed");
+        } catch (Exception e) {
+            LOGGER.at(Level.WARNING).log("Error closing MySQL HikariCP pool: %s", e.getMessage());
         }
     }
     
@@ -288,40 +324,42 @@ public class MySQLStorageProvider {
      * Salva todos os balances de forma síncrona (usado durante shutdown)
      */
     private void saveAllSync(Map<UUID, PlayerBalance> balances) throws SQLException {
-        if (connection == null || connection.isClosed()) {
+        if (dataSource == null || dataSource.isClosed()) {
             return;
         }
         
-        String sql = String.format("""
-            INSERT INTO `%s` (UUID, Nickname, Balance, Cash)
-            VALUES (?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-                Nickname = VALUES(Nickname),
-                Balance = VALUES(Balance),
-                Cash = VALUES(Cash)
-            """, tableName);
-        
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            for (Map.Entry<UUID, PlayerBalance> entry : balances.entrySet()) {
-                UUID uuid = entry.getKey();
-                PlayerBalance balance = entry.getValue();
-                
-                ps.setString(1, uuid.toString());
-                String nickname = balanceTracker.getPlayerNick(uuid);
-                ps.setString(2, nickname != null ? nickname : "");
-                ps.setDouble(3, balance.getBalance());
-                ps.setInt(4, balance.getCash());
-                ps.addBatch();
+        try (Connection conn = dataSource.getConnection()) {
+            String sql = String.format("""
+                INSERT INTO `%s` (UUID, Nickname, Balance, Cash)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    Nickname = VALUES(Nickname),
+                    Balance = VALUES(Balance),
+                    Cash = VALUES(Cash)
+                """, tableName);
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                for (Map.Entry<UUID, PlayerBalance> entry : balances.entrySet()) {
+                    UUID uuid = entry.getKey();
+                    PlayerBalance balance = entry.getValue();
+
+                    ps.setString(1, uuid.toString());
+                    String nickname = balanceTracker.getPlayerNick(uuid);
+                    ps.setString(2, nickname != null ? nickname : "");
+                    ps.setDouble(3, balance.getBalance());
+                    ps.setInt(4, balance.getCash());
+                    ps.addBatch();
+                }
+                ps.executeBatch();
             }
-            ps.executeBatch();
         }
     }
     
     /**
-     * Getter para connection (usado durante shutdown)
+     * Getter pour dataSource (usado durante shutdown)
      */
-    public Connection getConnection() {
-        return connection;
+    public HikariDataSource getDataSource() {
+        return dataSource;
     }
     
     /**

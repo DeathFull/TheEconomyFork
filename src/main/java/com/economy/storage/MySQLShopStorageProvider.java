@@ -5,6 +5,8 @@ import com.economy.config.EconomyConfig;
 import com.economy.shop.ShopItem;
 import com.economy.shop.ShopTracker;
 import com.hypixel.hytale.logger.HytaleLogger;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 import javax.annotation.Nonnull;
 import java.sql.*;
@@ -14,9 +16,9 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 /**
- * MySQL storage provider for AdminShop data.
- * 
- * Stores shop items and tabs in MySQL database.
+ * HikariCP-based MariaDB storage provider for AdminShop data.
+ *
+ * Stores shop items and tabs in MariaDB database using HikariCP connection pool.
  * Database: theeconomy
  * Tables: {tablePrefix}_items and {tablePrefix}_tabs
  * 
@@ -44,7 +46,7 @@ public class MySQLShopStorageProvider {
         return t;
     });
     
-    private Connection connection;
+    private HikariDataSource dataSource;
     private String itemsTableName;
     private String tabsTableName;
     private String host;
@@ -67,11 +69,8 @@ public class MySQLShopStorageProvider {
                 itemsTableName = tablePrefix + "_items";
                 tabsTableName = tablePrefix + "_tabs";
                 
-                // Load MySQL driver
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                
-                // First, connect without database to create it if it doesn't exist
-                String urlNoDb = String.format("jdbc:mysql://%s:%d?useSSL=false&allowPublicKeyRetrieval=true",
+                // First, create database if it doesn't exist using temporary connection
+                String urlNoDb = String.format("jdbc:mariadb://%s:%d?useSSL=false&allowPublicKeyRetrieval=true",
                     host, port);
                 
                 try (Connection tempConnection = DriverManager.getConnection(urlNoDb, username, password);
@@ -82,29 +81,64 @@ public class MySQLShopStorageProvider {
                     stmt.executeUpdate(createDbSql);
                 }
                 
-                // Now connect to the specific database
-                String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true",
+                // Configure HikariCP for MariaDB
+                HikariConfig hikariConfig = new HikariConfig();
+
+                // JDBC URL for MariaDB
+                String jdbcUrl = String.format("jdbc:mariadb://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true",
                     host, port, database);
-                
-                connection = DriverManager.getConnection(url, username, password);
-                
+                hikariConfig.setJdbcUrl(jdbcUrl);
+                hikariConfig.setUsername(username);
+                hikariConfig.setPassword(password);
+
+                // Pool settings
+                hikariConfig.setPoolName("EconomyAdminShopPool");
+                hikariConfig.setMaximumPoolSize(10);
+                hikariConfig.setMinimumIdle(5);
+
+                // Timeouts (in milliseconds)
+                hikariConfig.setConnectionTimeout(30000);     // 30 seconds
+                hikariConfig.setIdleTimeout(600000);          // 10 minutes
+                hikariConfig.setMaxLifetime(1800000);         // 30 minutes
+                hikariConfig.setValidationTimeout(5000);      // 5 seconds
+                hikariConfig.setKeepaliveTime(120000);        // 2 minutes
+
+                // Connection behavior
+                hikariConfig.setAutoCommit(true);
+                hikariConfig.setConnectionInitSql("SET NAMES utf8mb4");
+
+                // Leak detection (logs warning if connection not returned within threshold)
+                hikariConfig.setLeakDetectionThreshold(60000); // 60 seconds
+
+                // MariaDB-specific optimizations
+                hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
+                hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
+                hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+                hikariConfig.addDataSourceProperty("useServerPrepStmts", "true");
+                hikariConfig.addDataSourceProperty("useLocalSessionState", "true");
+                hikariConfig.addDataSourceProperty("rewriteBatchedStatements", "true");
+                hikariConfig.addDataSourceProperty("cacheResultSetMetadata", "true");
+                hikariConfig.addDataSourceProperty("cacheServerConfiguration", "true");
+                hikariConfig.addDataSourceProperty("maintainTimeStats", "false");
+
+                // Create HikariCP DataSource
+                dataSource = new HikariDataSource(hikariConfig);
+
                 // Create tables
                 createTables();
                 
                 // Connection established - will log after data is loaded
                 
-            } catch (ClassNotFoundException e) {
-                LOGGER.at(Level.SEVERE).log("MySQL driver not found! Add mysql-connector-j to dependencies");
-                throw new RuntimeException("MySQL driver not available", e);
             } catch (SQLException e) {
-                LOGGER.at(Level.SEVERE).log("Failed to connect to MySQL for AdminShop: %s", e.getMessage());
-                throw new RuntimeException("MySQL connection failed", e);
+                LOGGER.at(Level.SEVERE).log("Failed to connect to MariaDB for AdminShop: %s", e.getMessage());
+                throw new RuntimeException("MariaDB connection failed", e);
             }
         }, executor);
     }
     
     private void createTables() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
             // Items table with UniqueId as AUTO_INCREMENT
             String createItemsTableSql = String.format("""
                 CREATE TABLE IF NOT EXISTS `%s` (
@@ -191,10 +225,10 @@ public class MySQLShopStorageProvider {
     
     public CompletableFuture<Void> loadShopData(@Nonnull ShopTracker tracker, int shopId) {
         return CompletableFuture.runAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 // Load tabs first
                 String tabsSql = String.format("SELECT TabName FROM `%s` WHERE ShopId = ? ORDER BY Id", tabsTableName);
-                try (PreparedStatement ps = connection.prepareStatement(tabsSql)) {
+                try (PreparedStatement ps = conn.prepareStatement(tabsSql)) {
                     ps.setInt(1, shopId);
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
@@ -208,7 +242,7 @@ public class MySQLShopStorageProvider {
                 
                 // Load items
                 String itemsSql = String.format("SELECT UniqueId, ItemId, Quantity, PriceSell, PriceBuy, Tab, IsConsoleCommand, ConsoleCommand, DisplayName, UseCash FROM `%s` WHERE ShopId = ?", itemsTableName);
-                try (PreparedStatement ps = connection.prepareStatement(itemsSql)) {
+                try (PreparedStatement ps = conn.prepareStatement(itemsSql)) {
                     ps.setInt(1, shopId);
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
@@ -255,14 +289,14 @@ public class MySQLShopStorageProvider {
     
     public CompletableFuture<ShopItem> addItem(@Nonnull ShopItem item, int shopId) {
         return CompletableFuture.supplyAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 // Don't include UniqueId in INSERT - let MySQL AUTO_INCREMENT handle it
                 String sql = String.format("""
                     INSERT INTO `%s` (ShopId, ItemId, Quantity, PriceSell, PriceBuy, Tab, IsConsoleCommand, ConsoleCommand, DisplayName, UseCash)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, itemsTableName);
                 
-                try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                     ps.setInt(1, shopId);
                     ps.setString(2, item.getItemId());
                     ps.setInt(3, item.getQuantity());
@@ -298,9 +332,9 @@ public class MySQLShopStorageProvider {
     
     public CompletableFuture<Boolean> removeItem(int uniqueId, int shopId) {
         return CompletableFuture.supplyAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 String sql = String.format("DELETE FROM `%s` WHERE UniqueId = ? AND ShopId = ?", itemsTableName);
-                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setInt(1, uniqueId);
                     ps.setInt(2, shopId);
                     int rowsAffected = ps.executeUpdate();
@@ -319,14 +353,14 @@ public class MySQLShopStorageProvider {
     
     public CompletableFuture<Boolean> updateItem(@Nonnull ShopItem item, int shopId) {
         return CompletableFuture.supplyAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 String sql = String.format("""
                     UPDATE `%s` 
                     SET ItemId = ?, Quantity = ?, PriceSell = ?, PriceBuy = ?, Tab = ?, IsConsoleCommand = ?, ConsoleCommand = ?, DisplayName = ?, UseCash = ?
                     WHERE UniqueId = ? AND ShopId = ?
                     """, itemsTableName);
                 
-                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, item.getItemId());
                     ps.setInt(2, item.getQuantity());
                     ps.setDouble(3, item.getPriceSell());
@@ -354,9 +388,9 @@ public class MySQLShopStorageProvider {
     
     public CompletableFuture<Void> createTab(@Nonnull String tabName, int shopId) {
         return CompletableFuture.runAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 String sql = String.format("INSERT INTO `%s` (ShopId, TabName) VALUES (?, ?)", tabsTableName);
-                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setInt(1, shopId);
                     ps.setString(2, tabName);
                     ps.executeUpdate();
@@ -374,9 +408,9 @@ public class MySQLShopStorageProvider {
     
     public CompletableFuture<Boolean> removeTab(@Nonnull String tabName, int shopId) {
         return CompletableFuture.supplyAsync(() -> {
-            try {
+            try (Connection conn = dataSource.getConnection()) {
                 String sql = String.format("DELETE FROM `%s` WHERE TabName = ? AND ShopId = ?", tabsTableName);
-                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, tabName);
                     ps.setInt(2, shopId);
                     int rowsAffected = ps.executeUpdate();
@@ -398,13 +432,13 @@ public class MySQLShopStorageProvider {
     public CompletableFuture<Void> shutdown() {
         return CompletableFuture.runAsync(() -> {
             try {
-                if (connection != null && !connection.isClosed()) {
-                    connection.close();
+                if (dataSource != null && !dataSource.isClosed()) {
+                    dataSource.close();
                 }
                 executor.shutdown();
-                LOGGER.at(Level.INFO).log("MySQL AdminShop connection closed");
-            } catch (SQLException e) {
-                LOGGER.at(Level.WARNING).log("Error closing MySQL AdminShop connection: %s", e.getMessage());
+                LOGGER.at(Level.INFO).log("MySQL AdminShop HikariCP pool closed");
+            } catch (Exception e) {
+                LOGGER.at(Level.WARNING).log("Error closing MySQL AdminShop HikariCP pool: %s", e.getMessage());
             }
         });
     }
