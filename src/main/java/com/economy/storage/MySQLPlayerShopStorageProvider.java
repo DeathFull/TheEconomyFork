@@ -85,18 +85,6 @@ public class MySQLPlayerShopStorageProvider {
         infoTableName = tablePrefix + "_info";
         itemsTableName = tablePrefix + "_items";
 
-        // First, create database if it doesn't exist using temporary connection
-        String urlNoDb = String.format("jdbc:mariadb://%s:%d?useSSL=false&allowPublicKeyRetrieval=true",
-                host, port);
-
-        try (Connection tempConnection = DriverManager.getConnection(urlNoDb, username, password);
-             Statement stmt = tempConnection.createStatement()) {
-
-          // Create database if it doesn't exist
-          String createDbSql = "CREATE DATABASE IF NOT EXISTS `" + database + "`";
-          stmt.executeUpdate(createDbSql);
-        }
-
         // Configure HikariCP for MariaDB
         HikariConfig hikariConfig = new HikariConfig();
 
