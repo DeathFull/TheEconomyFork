@@ -99,21 +99,27 @@ public class MySQLPlayerShopStorageProvider {
         // Pool settings
         hikariConfig.setPoolName("EconomyPlayerShopPool");
         hikariConfig.setMaximumPoolSize(10);
-        hikariConfig.setMinimumIdle(5);
+        hikariConfig.setMinimumIdle(2); // Reduced from 5 to avoid connection overhead
 
         // Timeouts (in milliseconds)
-        hikariConfig.setConnectionTimeout(30000);     // 30 seconds
-        hikariConfig.setIdleTimeout(600000);          // 10 minutes
+        hikariConfig.setConnectionTimeout(10000);     // 10 seconds (reduced from 30)
+        hikariConfig.setIdleTimeout(300000);          // 5 minutes (reduced from 10)
         hikariConfig.setMaxLifetime(1800000);         // 30 minutes
-        hikariConfig.setValidationTimeout(5000);      // 5 seconds
-        hikariConfig.setKeepaliveTime(120000);        // 2 minutes
+        hikariConfig.setValidationTimeout(3000);      // 3 seconds (reduced from 5)
+        hikariConfig.setKeepaliveTime(60000);         // 1 minute (reduced from 2)
 
         // Connection behavior
         hikariConfig.setAutoCommit(true);
         hikariConfig.setConnectionInitSql("SET NAMES utf8mb4");
 
+        // Connection test query to ensure connections are valid
+        hikariConfig.setConnectionTestQuery("SELECT 1");
+
         // Leak detection (logs warning if connection not returned within threshold)
-        hikariConfig.setLeakDetectionThreshold(60000); // 60 seconds
+        hikariConfig.setLeakDetectionThreshold(30000); // 30 seconds (reduced from 60)
+
+        // Allow pool suspension on initialization failure
+        hikariConfig.setInitializationFailTimeout(-1); // Don't fail fast, keep retrying
 
         // MariaDB-specific optimizations
         hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
@@ -524,9 +530,7 @@ public class MySQLPlayerShopStorageProvider {
   }
 
   public CompletableFuture<Void> shutdown() {
-    return CompletableFuture.runAsync(() -> {
-      shutdownSync();
-    }, executor);
+    return CompletableFuture.runAsync(this::shutdownSync, executor);
   }
 
   /**
@@ -542,24 +546,6 @@ public class MySQLPlayerShopStorageProvider {
     } catch (Exception e) {
       LOGGER.at(Level.WARNING).log("Error closing MySQL PlayerShop HikariCP pool: %s", e.getMessage());
     }
-  }
-
-  /**
-   * Getter pour dataSource (usado durante shutdown)
-   */
-  public HikariDataSource getDataSource() {
-    return dataSource;
-  }
-
-  /**
-   * Getter para executor (usado durante shutdown)
-   */
-  public ExecutorService getExecutor() {
-    return executor;
-  }
-
-  public String getName() {
-    return String.format("MySQL (%s, %s)", infoTableName, itemsTableName);
   }
 }
 

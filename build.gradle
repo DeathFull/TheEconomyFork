@@ -23,6 +23,10 @@ repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
     maven { url 'https://maven.hytale.com/release' }
+    maven {
+        url = "https://repo.codemc.io/repository/creatorfromhell/"
+        name = "VaultUnlocked"
+    }
 }
 
 dependencies {
@@ -31,10 +35,11 @@ dependencies {
     compileOnly 'com.hypixel.hytale:Server:+'
 
     implementation 'com.zaxxer:HikariCP:7.0.2'
-
     // MariaDB Connector for database support (será incluído no Shadow JAR)
     implementation 'org.mariadb.jdbc:mariadb-java-client:3.5.7'
 
+
+    compileOnly "net.cfh.vault:VaultUnlocked:2.18.3"
     // VaultUnlocked dependency (compileOnly - apenas se o arquivo existir)
     // Adicione o JAR do VaultUnlocked na pasta libs/ do projeto
     // Procura por qualquer arquivo que comece com "VaultUnlocked-Hytale-"
@@ -54,7 +59,7 @@ dependencies {
     } catch (Exception e) {
         println "Error checking for VaultUnlocked: ${e.message}, skipping dependency."
     }
-    
+
     // Cassaforte dependency (compileOnly - apenas se o arquivo existir)
     // Adicione o JAR do Cassaforte na pasta libs/ do projeto
     // Procura por qualquer arquivo que comece com "Cassaforte-" ou "cassaforte-"
@@ -62,8 +67,8 @@ dependencies {
     try {
         def libsDir = file("libs")
         if (libsDir.exists() && libsDir.isDirectory()) {
-            def cassaforteJar = libsDir.listFiles().find { 
-                (it.name.toLowerCase().startsWith("cassaforte-") || it.name.startsWith("Cassaforte-")) && it.name.endsWith(".jar") 
+            def cassaforteJar = libsDir.listFiles().find {
+                (it.name.toLowerCase().startsWith("cassaforte-") || it.name.startsWith("Cassaforte-")) && it.name.endsWith(".jar")
             }
             if (cassaforteJar != null && cassaforteJar.exists()) {
                 compileOnly(files(cassaforteJar))
@@ -85,13 +90,13 @@ test {
 
 processResources {
     var expandProps = [
-        'name'          : project.name,
-        'version'       : project.version,
-        'group'         : project.group,
-        'description'   : mod_description,
-        'website'       : website,
-        'server_version': server_version,
-        'entry_point'   : entry_point
+            'name'          : project.name,
+            'version'       : project.version,
+            'group'         : project.group,
+            'description'   : mod_description,
+            'website'       : website,
+            'server_version': server_version,
+            'entry_point'   : entry_point
     ]
 
     filesMatching(['manifest.json']) {
@@ -135,10 +140,10 @@ shadowJar {
     archiveBaseName = project.name
     archiveVersion = project.version
     archiveClassifier = '' // Sem classifier, substitui o JAR normal
-    
+
     // HytaleServer.jar já está como compileOnly, então não será incluído automaticamente
     // Apenas inclui dependências de runtime (como MySQL connector ~2MB)
-    
+
     mergeServiceFiles()
 }
 

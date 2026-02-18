@@ -72,21 +72,27 @@ public class MySQLStorageProvider {
         // Pool settings
         hikariConfig.setPoolName("EconomyBalancePool");
         hikariConfig.setMaximumPoolSize(10);
-        hikariConfig.setMinimumIdle(5);
+        hikariConfig.setMinimumIdle(2); // Reduced from 5 to avoid connection overhead
 
         // Timeouts (in milliseconds)
-        hikariConfig.setConnectionTimeout(30000);     // 30 seconds
-        hikariConfig.setIdleTimeout(600000);          // 10 minutes
+        hikariConfig.setConnectionTimeout(10000);     // 10 seconds (reduced from 30)
+        hikariConfig.setIdleTimeout(300000);          // 5 minutes (reduced from 10)
         hikariConfig.setMaxLifetime(1800000);         // 30 minutes
-        hikariConfig.setValidationTimeout(5000);      // 5 seconds
-        hikariConfig.setKeepaliveTime(120000);        // 2 minutes
+        hikariConfig.setValidationTimeout(3000);      // 3 seconds (reduced from 5)
+        hikariConfig.setKeepaliveTime(60000);         // 1 minute (reduced from 2)
 
         // Connection behavior
         hikariConfig.setAutoCommit(true);
         hikariConfig.setConnectionInitSql("SET NAMES utf8mb4");
 
+        // Connection test query to ensure connections are valid
+        hikariConfig.setConnectionTestQuery("SELECT 1");
+
         // Leak detection (logs warning if connection not returned within threshold)
-        hikariConfig.setLeakDetectionThreshold(60000); // 60 seconds
+        hikariConfig.setLeakDetectionThreshold(30000); // 30 seconds (reduced from 60)
+
+        // Allow pool suspension on initialization failure
+        hikariConfig.setInitializationFailTimeout(-1); // Don't fail fast, keep retrying
 
         // MariaDB-specific optimizations
         hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
@@ -227,41 +233,86 @@ public class MySQLStorageProvider {
   }
 
   private void savePlayerSync(@Nonnull UUID playerUuid, @Nonnull PlayerBalance balance) {
-    try (Connection conn = dataSource.getConnection()) {
-      // Verifica se o player já existe no tracker
-      boolean playerExists = balanceTracker.getBalances().length > 0 &&
-              java.util.Arrays.stream(balanceTracker.getBalances())
-                      .anyMatch(b -> b.getUuid().equals(playerUuid));
+    // Vérifie si le pool est fermé ou indisponible
+    if (dataSource == null || dataSource.isClosed()) {
+      LOGGER.at(Level.WARNING).log("Cannot save player %s: DataSource is closed", playerUuid);
+      return;
+    }
 
-      String sql = String.format("""
-              INSERT INTO `%s` (UUID, Nickname, Balance, Cash)
-              VALUES (?, ?, ?, ?)
-              ON DUPLICATE KEY UPDATE 
-                  Nickname = VALUES(Nickname),
-                  Balance = VALUES(Balance),
-                  Cash = VALUES(Cash)
-              """, tableName);
+    // Vérifie l'état du pool
+    if (dataSource.getHikariPoolMXBean() != null) {
+      int totalConnections = dataSource.getHikariPoolMXBean().getTotalConnections();
+      int activeConnections = dataSource.getHikariPoolMXBean().getActiveConnections();
+      int idleConnections = dataSource.getHikariPoolMXBean().getIdleConnections();
 
-      try (PreparedStatement ps = conn.prepareStatement(sql)) {
-        ps.setString(1, playerUuid.toString());
-        ps.setString(2, balance.getNick() != null ? balance.getNick() : "");
-        ps.setDouble(3, balance.getBalance());
-        ps.setInt(4, balance.getCash());
-        ps.executeUpdate();
+      if (totalConnections == 0) {
+        LOGGER.at(Level.SEVERE).log("Cannot save player %s: No connections available in pool (total=0, active=%d, idle=%d)",
+                playerUuid, activeConnections, idleConnections);
+        LOGGER.at(Level.SEVERE).log("Pool may be closed or database may be unreachable. Consider checking database connectivity.");
+        return;
+      }
+    }
 
-        // Update tracker
-        if (!playerExists) {
-          // Novo player adicionado, incrementa contador
-          playerCount++;
+    // Retry logic avec backoff
+    int maxRetries = 3;
+    int retryDelayMs = 1000;
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try (Connection conn = dataSource.getConnection()) {
+        // Verifica se o player já existe no tracker
+        boolean playerExists = balanceTracker.getBalances().length > 0 &&
+                java.util.Arrays.stream(balanceTracker.getBalances())
+                        .anyMatch(b -> b.getUuid().equals(playerUuid));
+
+        String sql = String.format("""
+                INSERT INTO `%s` (UUID, Nickname, Balance, Cash)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE 
+                    Nickname = VALUES(Nickname),
+                    Balance = VALUES(Balance),
+                    Cash = VALUES(Cash)
+                """, tableName);
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+          ps.setString(1, playerUuid.toString());
+          ps.setString(2, balance.getNick() != null ? balance.getNick() : "");
+          ps.setDouble(3, balance.getBalance());
+          ps.setInt(4, balance.getCash());
+          ps.executeUpdate();
+
+          // Update tracker
+          if (!playerExists) {
+            // Novo player adicionado, incrementa contador
+            playerCount++;
+          }
+          balanceTracker.setBalance(playerUuid, balance.getBalance());
+          balanceTracker.setCash(playerUuid, balance.getCash());
+          if (balance.getNick() != null && !balance.getNick().isEmpty()) {
+            balanceTracker.setPlayerNick(playerUuid, balance.getNick());
+          }
+
+          // Success - exit retry loop
+          if (attempt > 1) {
+            LOGGER.at(Level.INFO).log("Successfully saved player %s after %d attempts", playerUuid, attempt);
+          }
+          return;
         }
-        balanceTracker.setBalance(playerUuid, balance.getBalance());
-        balanceTracker.setCash(playerUuid, balance.getCash());
-        if (balance.getNick() != null && !balance.getNick().isEmpty()) {
-          balanceTracker.setPlayerNick(playerUuid, balance.getNick());
+      } catch (SQLException e) {
+        if (attempt < maxRetries) {
+          LOGGER.at(Level.WARNING).log("Failed to save player %s (attempt %d/%d): %s. Retrying in %dms...",
+                  playerUuid, attempt, maxRetries, e.getMessage(), retryDelayMs);
+          try {
+            Thread.sleep(retryDelayMs);
+            retryDelayMs *= 2; // Exponential backoff
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            break;
+          }
+        } else {
+          LOGGER.at(Level.SEVERE).log("Failed to save player %s after %d attempts: %s",
+                  playerUuid, maxRetries, e.getMessage());
         }
       }
-    } catch (SQLException e) {
-      LOGGER.at(Level.SEVERE).log("Failed to save player %s: %s", playerUuid, e.getMessage());
     }
   }
 
@@ -347,24 +398,6 @@ public class MySQLStorageProvider {
         ps.executeBatch();
       }
     }
-  }
-
-  /**
-   * Getter pour dataSource (usado durante shutdown)
-   */
-  public HikariDataSource getDataSource() {
-    return dataSource;
-  }
-
-  /**
-   * Getter para executor (usado durante shutdown)
-   */
-  public ExecutorService getExecutor() {
-    return executor;
-  }
-
-  public String getName() {
-    return String.format("MySQL (theeconomy.%s)", tableName);
   }
 
   public int getPlayerCount() {
