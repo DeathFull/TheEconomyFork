@@ -1,15 +1,18 @@
 {
   "Group": "Economy",
   "Name": "EconomySystem",
-  "Version": "1.0.0",
+  "Version": "${version}",
   "Description": "${description}",
   "Authors": [
     {
       "Name": "EconomySystem"
+    },
+    {
+      "Name": "DeathFull"
     }
   ],
   "Website": "${website}",
-  "ServerVersion": "*",
+  "ServerVersion": "${server_version}",
   "Dependencies": {},
   "OptionalDependencies": {
     "Hytale:EntityModule": "*",
